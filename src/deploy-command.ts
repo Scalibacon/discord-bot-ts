@@ -1,29 +1,31 @@
-import { SlashCommandBuilder, Routes } from "discord.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { Routes } from "discord.js";
 import { REST } from "@discordjs/rest";
+import { FsCommandReturn } from './types/FsCommandReturn';
 
 const { BOT_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
 
-const commands = [
-  new SlashCommandBuilder().setName('ping').setDescription('Replies with pongas!'),
-  new SlashCommandBuilder().setName('server').setDescription('Replies with server infos!'),
-  new SlashCommandBuilder().setName('user').setDescription('Replies with user info!'),
-];
+const commands: any[] = [];
 
-const commandsJson = commands.map( command => command.toJSON());
+// busca infos dos comandos na pasta
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter( file => file.endsWith('.ts'));
+
+// joga as infos dos comandos na variável
+for (const file of commandFiles) {
+	const filePath = path.join(commandsPath, file);
+	const command = require(filePath) as FsCommandReturn;
+	commands.push(command.default.data);
+}
 
 const rest = new REST({ version: '10' }).setToken(BOT_TOKEN || '');
 
-async function setCommands(){
-  try{
-    await rest.put(
-      Routes.applicationGuildCommands(CLIENT_ID || '', GUILD_ID || ''),
-      { body: commandsJson }
-    );
-
-    console.log('Commands ran successfully!')
-  } catch(error){
-    console.error('Error trying to set slash commands', error);
-  }  
-}
-
-setCommands();
+( async () => {
+  console.log('Loading commands...', /*commands*/);
+  await rest.put(
+    Routes.applicationGuildCommands(CLIENT_ID || '', GUILD_ID || ''),
+    { body: commands }
+  );
+  console.log('Commands ran successfully!')
+})();
