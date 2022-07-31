@@ -5,9 +5,10 @@ const interactionCreate = {
   name: 'interactionCreate',
   once: false,
   execute: (interaction: Interaction) => {
+    console.log('interaction', )
     if(!interaction.isChatInputCommand()) return;
 
-    console.log(`${interaction.user?.tag} no #${interaction.channel} interagiu.`, interaction.channel);
+    console.log(`${interaction.user?.tag} no #${interaction.channel} interagiu.`, interaction.channel?.client);
 
     // const command = client.commands?.get(interaction.commandName) as TypeCommand;
 
