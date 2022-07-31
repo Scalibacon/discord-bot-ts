@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import './deploy-command';
-import { TypeCommand } from './types/Command';
 import { FsCommandReturn } from './types/FsCommandReturn';
+import { BotEvent } from './types/BotEvent';
+import { FsEventReturn } from './types/FsEventReturn';
 
 interface ClientWithCommands extends Client{
   commands?: Collection<any, any>
@@ -13,7 +14,9 @@ interface ClientWithCommands extends Client{
 // cria instância do client
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
   ]
 }) as ClientWithCommands;
 
@@ -31,26 +34,50 @@ for(const file of commandFiles){
   client.commands.set(command.default?.data?.name, command.default);
 }
 
-// quando client tiver fino, executa 1 vez
-client.once('ready', () => {
-  console.log('Bot ready for the next battle!');
-});
+const eventsPath = path.join(__dirname, 'events');
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.ts'));
 
-// quando interagirem com o bot
-client.on('interactionCreate', async interaction => {  
-  if(!interaction.isChatInputCommand()) return;
+for(const file of eventFiles){
+  const filePath = path.join(eventsPath, file);
+  const fsEvent = require(filePath) as FsEventReturn;
+  const event = fsEvent.default;
 
-  const command = client.commands?.get(interaction.commandName) as TypeCommand;
-
-  if(!command) return;
-
-  try{
-    await command.execute(interaction);
-  } catch(error){
-    console.log('Error trying to get command', error);
-    await interaction.reply({ content: 'Teve um erro executando seu comando, meu patrone.', ephemeral: true});
+  if(event.once){
+    client.once(event.name, (...args) => event.execute(...args));
+  } else {
+    client.on(event.name, (...args) => event.execute(...args));
   }
-});
+}
+
+// quando client tiver fino, executa 1 vez
+// client.once('ready', () => {
+//   console.log('Bot ready for the next battle!');
+// });
+
+// // quando interagirem com o bot
+// client.on('interactionCreate', async interaction => {  
+//   if(!interaction.isChatInputCommand()) return;
+
+//   const command = client.commands?.get(interaction.commandName) as TypeCommand;
+
+//   if(!command) return;
+
+//   try{
+//     await command.execute(interaction);
+//   } catch(error){
+//     console.log('Error trying to get command', error);
+//     await interaction.reply({ content: 'Teve um erro executando seu comando, meu patrone.', ephemeral: true});
+//   }
+// });
+
+// espero que rode quando enviarem mensagem
+// client.on('messageCreate', async message => {
+//   console.log('mensagem', message);
+
+//   if(message.author.bot) return;
+
+//   message.reply('aqui quem manda é as ratazana, cuzão 🖕')
+// });
 
 // loga com o token do .env
 client.login(process.env.BOT_TOKEN);

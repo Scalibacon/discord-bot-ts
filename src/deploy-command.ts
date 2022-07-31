@@ -24,7 +24,8 @@ const rest = new REST({ version: '10' }).setToken(BOT_TOKEN || '');
 ( async () => {
   console.log('Loading commands...', /*commands*/);
   await rest.put(
-    Routes.applicationGuildCommands(CLIENT_ID || '', GUILD_ID || ''),
+    // Routes.applicationGuildCommands(CLIENT_ID || '', GUILD_ID || ''),
+    Routes.applicationCommands(CLIENT_ID || ''),
     { body: commands }
   );
   console.log('Commands ran successfully!')
