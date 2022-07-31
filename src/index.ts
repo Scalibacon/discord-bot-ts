@@ -4,12 +4,8 @@ import path from 'node:path';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import './deploy-command';
 import { FsCommandReturn } from './types/FsCommandReturn';
-import { BotEvent } from './types/BotEvent';
 import { FsEventReturn } from './types/FsEventReturn';
-
-interface ClientWithCommands extends Client{
-  commands?: Collection<any, any>
-}
+import { ClientWithCommands } from './types/clientWithCommands';
 
 // cria instância do client
 const client = new Client({
