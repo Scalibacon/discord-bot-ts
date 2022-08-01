@@ -17,11 +17,11 @@ const timerCommand = {
     }
 
     await interaction.deferReply();
-    await interaction.followUp(`Timer with ${seconds} seconds started!`)
+    await interaction.followUp(`Timer with ${seconds} seconds started! ⏳`)
 
     await wait(seconds * 1000);
 
-    await interaction.followUp(`Timer with ${seconds} seconds finished!`)
+    await interaction.followUp(`Timer with ${seconds} seconds finished! ⏳`)
   }
 
 } as TypeCommand;
