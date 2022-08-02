@@ -1,8 +1,8 @@
 import { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, NoSubscriberBehavior } from "@discordjs/voice";
-import { ChatInputCommandInteraction, CommandInteractionOptionResolver, SlashCommandBuilder } from "discord.js";
-import path from "path";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { TypeCommand } from "src/types/Command";
 import play from 'play-dl';
+import VoiceConnectionWithPlayer from "src/types/VoiceConnectionWithPlayer";
 
 const playCommand = {
   data: new SlashCommandBuilder()
@@ -26,7 +26,7 @@ const playCommand = {
         channelId: channelId,
         guildId,
         adapterCreator
-      });      
+      }) as VoiceConnectionWithPlayer;      
 
       const audioStream = await play.stream(nameOrUrl);      
 
@@ -47,6 +47,9 @@ const playCommand = {
       });
 
       audioPlayer.play(audioResource);
+
+      // guarda referência do player na conexão pra ter acesso a ele de outro arquivo
+      voiceConnection.player = audioPlayer;
       voiceConnection.subscribe(audioPlayer);
 
       interaction.reply('Song requested!');
