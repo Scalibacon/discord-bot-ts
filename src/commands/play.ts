@@ -1,7 +1,7 @@
-import { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, NoSubscriberBehavior } from "@discordjs/voice";
+import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from "@discordjs/voice";
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { TypeCommand } from "src/types/Command";
-import play from 'play-dl';
+import play, { SoundCloudStream, YouTubeStream } from 'play-dl';
 import VoiceConnectionWithPlayer from "src/types/VoiceConnectionWithPlayer";
 
 const playCommand = {
@@ -12,53 +12,122 @@ const playCommand = {
 
   execute: async (interaction: ChatInputCommandInteraction) => {
     try{
-      const channelId = getUserVoiceChannel(interaction);
-      let guildId = interaction.guildId;
-      const adapterCreator = interaction.guild?.voiceAdapterCreator;
       const nameOrUrl = interaction.options.getString('name-or-url');
 
-      if(!adapterCreator || !guildId || !channelId || !nameOrUrl){
-        interaction.reply('Error trying to get info to play song. Make sure you are connected to a voice channel.');
-        return;
+      if(!nameOrUrl) throw new Error('No song name or URL was provided!');      
+
+      await interaction.deferReply();
+
+      const voiceConnection = setupVoiceConnection(interaction);
+
+      let [ searchInfo ] = await play.search(nameOrUrl, {
+        limit: 1
+      });
+
+      if(!searchInfo) throw new Error('No YouTube music found!');
+      if(!voiceConnection) throw new Error('Unable to create voice connection!');
+
+      voiceConnection.playlist?.push(searchInfo);
+
+      // já bota pra tocar se só tiver ela na playlist
+      if(voiceConnection.playlist?.length === 1){
+        await playSong(voiceConnection);
       }
 
-      const voiceConnection = joinVoiceChannel({
-        channelId: channelId,
-        guildId,
-        adapterCreator
-      }) as VoiceConnectionWithPlayer;      
-
-      const audioStream = await play.stream(nameOrUrl);      
-
-      // const audioUrl = path.join(__dirname, '..', 'assets', 'audio', 'Ah Yeah!!.mp3');      
-
-      const audioResource = createAudioResource(audioStream.stream, {
-        inputType: audioStream.type
-      });
-
-      const audioPlayer = createAudioPlayer({
-        behaviors: {
-          noSubscriber: NoSubscriberBehavior.Pause
-        }
-      });
-
-      audioPlayer.on(AudioPlayerStatus.Playing, () => {
-        console.log('The audio player has started playing!');
-      });
-
-      audioPlayer.play(audioResource);
-
-      // guarda referência do player na conexão pra ter acesso a ele de outro arquivo
-      voiceConnection.player = audioPlayer;
-      voiceConnection.subscribe(audioPlayer);
-
-      interaction.reply('Song requested!');
+      interaction.followUp(`Song ${searchInfo.title} requested!`);
     } catch(error){
-      if(error instanceof Error) console.error('Error trying to execute play command', error.message);
+      if(error instanceof Error){
+        console.error('Error trying to execute play command', error.message);
+        await interaction.reply(error.message);        
+      } 
     }  
   }
 
 } as TypeCommand;
+
+const playSong = async (voiceConnection: VoiceConnectionWithPlayer) => {
+  let audioStream: YouTubeStream | SoundCloudStream;
+
+  if(voiceConnection.playlist.length <= 0){
+    console.log('No music found in the playlist');
+    return;
+  }
+
+  const searchInfo = voiceConnection.playlist[0];  
+
+  audioStream = await play.stream(searchInfo.url);               
+
+  const audioResource = createAudioResource(audioStream.stream, {
+    inputType: audioStream.type
+  });      
+
+  voiceConnection.player.play(audioResource);
+}
+
+const setupAudioPlayer = (voiceConnection: VoiceConnectionWithPlayer) => {
+  const audioPlayer = createAudioPlayer({
+    behaviors: {
+      noSubscriber: NoSubscriberBehavior.Pause
+    }
+  });
+
+  audioPlayer.on(AudioPlayerStatus.Playing, () => {
+    console.log(`The audio player has started playing!`);
+  });
+
+  audioPlayer.on(AudioPlayerStatus.Buffering, () => {
+    console.log(`The audio player is buffering...`);
+  });
+
+  audioPlayer.on(AudioPlayerStatus.Idle, () => {
+    console.log(`The audio player is idle.`);
+
+    skipSong(voiceConnection);
+  });
+
+  return audioPlayer;
+}
+
+export const skipSong = async (voiceConnection: VoiceConnectionWithPlayer) => {
+  // todo: só skipar se tiver mais de 1 na playlist OU no play() chamar um stop caso tenha só 1 na fila
+  voiceConnection.playlist.shift();    
+  playSong(voiceConnection);
+}
+
+const setupVoiceConnection = (interaction: ChatInputCommandInteraction) => {
+  try{
+    const channelId = getUserVoiceChannel(interaction);
+    let guildId = interaction.guildId;
+    const adapterCreator = interaction.guild?.voiceAdapterCreator;
+  
+    if(!adapterCreator || !guildId || !channelId){
+      throw new Error('Error trying to get info to play song. Make sure you are connected to a voice channel.');
+    }
+  
+    let voiceConnection = getVoiceConnection(guildId) as VoiceConnectionWithPlayer | undefined;
+        
+    if(!voiceConnection) {
+      voiceConnection = joinVoiceChannel({
+        channelId: channelId,
+        guildId,
+        adapterCreator
+      }) as VoiceConnectionWithPlayer;
+  
+      // guarda referência do player na conexão pra ter acesso a ele de outro arquivo
+      voiceConnection.player = setupAudioPlayer(voiceConnection);
+      voiceConnection.playlist = [];
+  
+      voiceConnection.subscribe(voiceConnection.player);
+      console.log('A new voice connection was created!');
+    }
+  
+    return voiceConnection;
+  } catch(error){
+    if(error instanceof Error){
+      console.error('Error trying to setup voice connection', error.message);
+    }  
+  }
+}
 
 const getUserVoiceChannel = (interaction: ChatInputCommandInteraction): false | string => {
   const userId = interaction.user.id;

@@ -20,9 +20,12 @@ const pauseCommand = {
 
       connection.player.pause();
 
-      interaction.reply('Song paused')
+      interaction.reply('Song paused');
     } catch(error){
-      if(error instanceof Error) console.error('Error trying to pause music', error.message);
+      if(error instanceof Error){
+        console.error('Error trying to pause music', error.message);
+        interaction.reply('Error trying to pause music: ' + error.message);
+      } 
     }
   }
 } as TypeCommand;
