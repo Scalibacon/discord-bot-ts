@@ -17,6 +17,8 @@ const skipCommand = {
       
       if(!connection) throw new Error('No voice connection found!');
 
+      if(connection.playlist.length <= 1) throw new Error('No music to skip to!');
+
       await skipSong(connection);
 
       interaction.reply('Song skipped')

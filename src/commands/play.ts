@@ -1,4 +1,4 @@
-import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from "@discordjs/voice";
+import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior } from "@discordjs/voice";
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { TypeCommand } from "src/types/Command";
 import play, { SoundCloudStream, YouTubeStream } from 'play-dl';
@@ -34,11 +34,11 @@ const playCommand = {
         await playSong(voiceConnection);
       }
 
-      interaction.followUp(`Song ${searchInfo.title} requested!`);
+      interaction.followUp(`Song ${searchInfo.title} added to playlist!`);
     } catch(error){
       if(error instanceof Error){
         console.error('Error trying to execute play command', error.message);
-        await interaction.reply(error.message);        
+        await interaction.followUp(error.message);        
       } 
     }  
   }

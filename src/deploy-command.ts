@@ -4,7 +4,7 @@ import { Routes } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { FsCommandReturn } from './types/FsCommandReturn';
 
-const { BOT_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
+const { BOT_TOKEN, CLIENT_ID } = process.env;
 
 const commands: any[] = [];
 

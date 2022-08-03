@@ -46,35 +46,5 @@ for(const file of eventFiles){
   }
 }
 
-// quando client tiver fino, executa 1 vez
-// client.once('ready', () => {
-//   console.log('Bot ready for the next battle!');
-// });
-
-// // quando interagirem com o bot
-// client.on('interactionCreate', async interaction => {  
-//   if(!interaction.isChatInputCommand()) return;
-
-//   const command = client.commands?.get(interaction.commandName) as TypeCommand;
-
-//   if(!command) return;
-
-//   try{
-//     await command.execute(interaction);
-//   } catch(error){
-//     console.log('Error trying to get command', error);
-//     await interaction.reply({ content: 'Teve um erro executando seu comando, meu patrone.', ephemeral: true});
-//   }
-// });
-
-// espero que rode quando enviarem mensagem
-// client.on('messageCreate', async message => {
-//   console.log('mensagem', message);
-
-//   if(message.author.bot) return;
-
-//   message.reply('aqui quem manda é as ratazana, cuzão 🖕')
-// });
-
 // loga com o token do .env
 client.login(process.env.BOT_TOKEN);
